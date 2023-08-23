@@ -30,7 +30,7 @@ fn setup(
             custom_size: Some(Vec2::new(20.0, 20.0)),
             ..Default::default()
         },
-        transform: Transform::from_translation(Vec3::new(0.0,0.0,0.0)),
+        transform: Transform::from_xyz(0.0, 0.0, 0.0),
         ..default()
     }));
 }
@@ -41,7 +41,7 @@ fn move_player(
     time_step: Res<FixedTime>
 ) {
     let mut player_transform = query.single_mut();
-    let direction = {
+    let movement = {
         let (mut x, mut y) = (0.0, 0.0);
         if keyboard.pressed(KeyCode::Right) {
             x += 1.0;
@@ -55,16 +55,11 @@ fn move_player(
         if keyboard.pressed(KeyCode::Down) {
             y -= 1.0;
         }
-        (x, y)
+        Vec3::new(x, y, 0.0)
     };
     const PLAYER_SPEED: f32 = 35.0;
 
-    let newpos = Vec3::new(
-        player_transform.translation.x + direction.0*PLAYER_SPEED*time_step.period.as_secs_f32(),
-        player_transform.translation.y + direction.1*PLAYER_SPEED*time_step.period.as_secs_f32(),
-        0.0
-    );
-    player_transform.translation = newpos;
+    player_transform.translation += movement * PLAYER_SPEED*time_step.period.as_secs_f32();
 }
 
 
