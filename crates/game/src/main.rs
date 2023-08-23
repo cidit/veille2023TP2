@@ -7,29 +7,12 @@ fn main() {
 #[derive(Component)]
 struct Player;
 
-#[derive(Component)]
-struct Person;
-
-#[derive(Component)]
-struct Name(String);
-
-impl std::fmt::Display for Name {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.0)
-    }
-}
-
-#[derive(Resource)]
-struct GreetTimer(Timer);
-
 pub struct HelloPlugin;
 impl Plugin for HelloPlugin {
     fn build(&self, app: &mut App) {
-        app.insert_resource(GreetTimer(Timer::from_seconds(2.0, TimerMode::Repeating)))
+        app
             .insert_resource(FixedTime::new_from_secs(1.0/60.0)) // 1 60th of a second, for 60FPS
             .add_systems(Startup, setup)
-            .add_systems(Startup, add_people)
-            .add_systems(Update, greet_people)
             .add_systems(FixedUpdate, move_player)
         ;
     }
@@ -84,19 +67,4 @@ fn move_player(
     player_transform.translation = newpos;
 }
 
-fn add_people(mut commands: Commands) {
-    commands.spawn_batch([
-        (Person, Name("Henry".to_string())),
-        (Person, Name("Henzo".to_string())),
-        (Person, Name("Steve".to_string())),
-    ])
-}
 
-fn greet_people(time: Res<Time>, mut timer: ResMut<GreetTimer>, query: Query<&Name, With<Person>>) {
-    if !timer.0.tick(time.delta()).just_finished() {
-        return;
-    }
-    for name in &query {
-        println!("hello, {name}!");
-    }
-}
