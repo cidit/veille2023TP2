@@ -28,8 +28,6 @@ impl Plugin for HelloPlugin {
 fn setup(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
-    // mut meshes: ResMut<Assets<Mesh>>,
-    // mut materials: ResMut<Assets<ColorMaterial>>,
 ) {
     commands.spawn(Camera2dBundle::default());
     commands.spawn((
