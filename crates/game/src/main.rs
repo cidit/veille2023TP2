@@ -31,8 +31,6 @@ fn setup(
     // mut meshes: ResMut<Assets<Mesh>>,
     // mut materials: ResMut<Assets<ColorMaterial>>,
 ) {
-    let camera = Camera2dBundle::default();
-    camera.frustum
     commands.spawn(Camera2dBundle::default());
     commands.spawn((
         Player,
@@ -66,11 +64,9 @@ fn setup(
 
 fn move_player(
     keyboard: Res<Input<KeyCode>>,
-    mut query: Query<&mut Transform, With<Player>>,
     mut impulses: Query<&mut ExternalImpulse, With<Player>>,
     time_step: Res<FixedTime>,
 ) {
-    let mut player_transform = query.single_mut();
     let movement = {
         let (mut x, mut y) = (0.0, 0.0);
         if keyboard.pressed(KeyCode::Right) {
@@ -89,7 +85,6 @@ fn move_player(
     };
     const PLAYER_SPEED: f32 = 300.0;
 
-    // player_transform.translation += movement * PLAYER_SPEED * time_step.period.as_secs_f32();
     for mut impulse in impulses.iter_mut() {
         impulse.impulse = movement * PLAYER_SPEED * time_step.period.as_secs_f32();    
     }
