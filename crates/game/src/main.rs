@@ -1,7 +1,6 @@
 use bevy::{prelude::*, window::PrimaryWindow};
 use bevy_rapier2d::prelude::*;
 
-
 fn main() {
     App::new()
         .add_plugins(DefaultPlugins.set(ImagePlugin::default_nearest()))
@@ -13,19 +12,11 @@ fn main() {
         .run();
 }
 
-
-class Player {}
-
-
-
-
-
 #[derive(Component)]
 struct Player;
 
 #[derive(Component)]
 struct MainCamera;
-
 
 pub struct HelloPlugin;
 impl Plugin for HelloPlugin {
@@ -39,13 +30,8 @@ impl Plugin for HelloPlugin {
     }
 }
 
-fn setup(
-    mut commands: Commands,
-    asset_server: Res<AssetServer>,
-) {
-    commands.spawn(
-     (Camera2dBundle::default(), MainCamera)
-    );
+fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
+    commands.spawn((Camera2dBundle::default(), MainCamera));
     commands.spawn((
         Player,
         RigidBody::Dynamic,
@@ -76,7 +62,7 @@ fn setup(
         GravityScale(0.1),
         Ccd::enabled(),
         ExternalImpulse {
-            impulse: Vec2::new(0., 0. ),
+            impulse: Vec2::new(0., 0.),
             ..Default::default()
         },
     ));
@@ -106,11 +92,9 @@ fn move_player(
     const PLAYER_SPEED: f32 = 300.0;
 
     for mut impulse in impulses.iter_mut() {
-        impulse.impulse = movement * PLAYER_SPEED * time_step.period.as_secs_f32();    
+        impulse.impulse = movement * PLAYER_SPEED * time_step.period.as_secs_f32();
     }
-    
 }
-
 
 fn rotate_player_according_to_mouse(
     player_transform: Query<&Transform, With<Player>>,
@@ -120,14 +104,15 @@ fn rotate_player_according_to_mouse(
 ) {
     let (camera, camera_transform) = q_camera.single();
 
-    if let Some(position) = windows.single().cursor_position()
-        .and_then(| cursor | camera.viewport_to_world(camera_transform, cursor))
-        .map(| ray | ray.origin.truncate())
-     {
+    if let Some(position) = windows
+        .single()
+        .cursor_position()
+        .and_then(|cursor| camera.viewport_to_world(camera_transform, cursor))
+        .map(|ray| ray.origin.truncate())
+    {
         if player_transform.single().translation.x < position.x {
             sprite.single_mut().flip_x = false;
-        }
-        else {
+        } else {
             sprite.single_mut().flip_x = true;
         }
     }
@@ -141,5 +126,4 @@ fn camera_follow_player(
     let mut camera_transform = camera_transform.single_mut();
     camera_transform.translation.x = player_transform.translation.x;
     camera_transform.translation.y = player_transform.translation.y;
-    
 }
