@@ -12,6 +12,13 @@ fn main() {
         .run();
 }
 
+
+class Player {}
+
+
+
+
+
 #[derive(Component)]
 struct Player;
 
