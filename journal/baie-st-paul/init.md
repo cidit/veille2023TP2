@@ -16,3 +16,8 @@ lien 1: https://bevy-cheatbook.github.io/input/mouse.html
 lien 2: https://doc.rust-lang.org/std/option/enum.Option.html#variant.Some
 
 
+# 13 Octobre 2023
+
+j'ai voulu faire un terrai qui agirais de base au lac mais on avais eu de la misere a créer un mesh a partir d'une image png. j'ai trouver une library qui pourrais le faire peut-etre :
+
+lien 1: https://github.com/shnewto/bevy_rapier_collider_gen/tree/main
