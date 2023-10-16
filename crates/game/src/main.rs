@@ -1,5 +1,6 @@
-use bevy::{prelude::*, window::PrimaryWindow};
+use bevy::{prelude::*, window::PrimaryWindow, core_pipeline::clear_color::ClearColorConfig, transform};
 use bevy_rapier2d::prelude::*;
+use bevy::{prelude::*, sprite::MaterialMesh2dBundle};
 
 fn main() {
     App::new()
@@ -18,6 +19,8 @@ struct Player;
 #[derive(Component)]
 struct MainCamera;
 
+
+
 pub struct HelloPlugin;
 impl Plugin for HelloPlugin {
     fn build(&self, app: &mut App) {
@@ -30,8 +33,16 @@ impl Plugin for HelloPlugin {
     }
 }
 
-fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
-    commands.spawn((Camera2dBundle::default(), MainCamera));
+fn setup(mut commands: Commands, asset_server: Res<AssetServer>, mut meshes: ResMut<Assets<Mesh>>, mut materials: Res<Assets<ColorMaterial>>) {
+    commands.spawn((
+        MainCamera,
+        Camera2dBundle {
+            camera_2d: Camera2d {
+                clear_color: ClearColorConfig::Custom(Color::hex("5542FD").unwrap()),
+            },
+            ..Default::default()
+        },
+    ));
     commands.spawn((
         Player,
         RigidBody::Dynamic,
@@ -65,6 +76,18 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
             impulse: Vec2::new(0., 0.),
             ..Default::default()
         },
+    ));
+    
+    let image: Handle<Image> = asset_server.load("terrain.png");
+    let mut material = ColorMaterial::from(image);
+
+    commands.spawn((
+        RigidBody::Fixed,
+        Ccd::enabled(),
+        Material2MeshBundle {
+            mesh: meshes.add(Mesh::from(value))
+
+        }
     ));
 }
 
@@ -127,3 +150,4 @@ fn camera_follow_player(
     camera_transform.translation.x = player_transform.translation.x;
     camera_transform.translation.y = player_transform.translation.y;
 }
+
