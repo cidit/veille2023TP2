@@ -8,4 +8,8 @@ edition = "2021"
 [dependencies]
 bevy = { version = "0.11.2", features = ["dynamic_linking"] }
 bevy_rapier2d = "0.22.0"
-bevy_rapier_collider_gen = "0.1.2"
+
+[dependencies.bevy_rapier_collider_gen]
+git = "https://github.com/shnewto/bevy_rapier_collider_gen.git"
+commit = "cca4d5b"
+
