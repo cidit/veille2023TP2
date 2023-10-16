@@ -1,4 +1,6 @@
-use bevy::{prelude::*, window::PrimaryWindow, core_pipeline::clear_color::ClearColorConfig};
+use std::{future, collections::HashMap};
+
+use bevy::{prelude::*, window::PrimaryWindow, core_pipeline::clear_color::ClearColorConfig, asset::LoadAssets};
 use bevy_rapier2d::prelude::*;
 use bevy_rapier_collider_gen::{multi_polyline_collider_translated};
 
@@ -13,18 +15,31 @@ fn main() {
         .run();
 }
 
+
+#[derive(Resource, Default)]
+struct GameAssets {
+    images: HashMap<String, Handle<Image>>
+}
+
 #[derive(Component)]
 struct Player;
 
 #[derive(Component)]
 struct MainCamera;
 
-
+#[derive(States, Debug, Clone, PartialEq, Eq, Hash, Default)]
+pub enum AppStates {
+    #[default]
+    Loading, 
+    Playing,
+}
 
 pub struct HelloPlugin;
 impl Plugin for HelloPlugin {
     fn build(&self, app: &mut App) {
-        app.insert_resource(FixedTime::new_from_secs(1.0 / 60.0)) // 1 60th of a second, for 60FPS
+        app.add_state::<AppStates>()
+            .insert_resource(FixedTime::new_from_secs(1.0 / 60.0)) // 1 60th of a second, for 60FPS
+            .insert_resource(GameAssets::default())
             .add_systems(Startup, setup)
             .add_systems(FixedUpdate, move_player)
             .add_systems(Update, rotate_player_according_to_mouse)
@@ -33,12 +48,18 @@ impl Plugin for HelloPlugin {
     }
 }
 
-fn setup(mut commands: Commands, asset_server: Res<AssetServer>, mut meshes: ResMut<Assets<Mesh>>, mut materials: Res<Assets<ColorMaterial>>) {
+fn setup(
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+   // mut materials: Res<Assets<ColorMaterial>>,
+    images: Res<Assets<Image>>
+    ) {
+
     commands.spawn((
         MainCamera,
         Camera2dBundle {
             camera_2d: Camera2d {
-                clear_color: ClearColorConfig::Custom(Color::hex("5542FD").unwrap()),
+                clear_color: ClearColorConfig::Custom(Color::hex("5542FD").expect("failed to parse color")),
             },
             ..Default::default()
         },
@@ -77,14 +98,53 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>, mut meshes: Res
             ..Default::default()
         },
     ));
-    
-    let image: Handle<Image> = asset_server.load("terrain.png");
-    let mut material = ColorMaterial::from(image);
+    {
+        
+        let image_handle: Handle<Image> = asset_server.load("sable.png");
+        println!("{:?}",asset_server.get_load_state(image_handle.clone()));
+        // let mut material = ColorMaterial::from(image.clone());
+        let image = images.get(&image_handle).expect("failed to get image");
+        let colliders = multi_polyline_collider_translated(&image); 
 
-    commands.spawn((
-        RigidBody::Fixed,
-        Ccd::enabled(),
-    ));
+        commands.spawn((
+            RigidBody::Fixed,
+            Ccd::enabled(),
+            SpriteBundle{
+                texture: image_handle,
+                ..Default::default()
+            }            
+        ));
+    }
+    
+}
+
+fn loadAssets(
+    asset_server: Res<AssetServer>,
+    mut game_assets: ResMut<GameAssets>, 
+) {
+    let image_handle: Handle<Image> = asset_server.load("sable.png");
+    game_assets.images.insert("sable".to_string(), image_handle);
+
+    game_assets.images = HashMap::from(
+        vec![
+            "sable.png",
+            "character.png"
+        ].iter()
+        .map(|&s| (s.into(), asset_server.load(s)))
+        .collect::<Vec<_>>()
+    );
+        
+
+}
+
+fn check_assets(
+    asset_server: Res<AssetServer>,
+    mut state: ResMut<NextState<AppStates>>,
+) {
+
+    if asset_server.get_load_state(image_handle.clone()) == LoadState::Loaded {
+        state.set(AppStates::Playing).unwrap();
+    }
 }
 
 fn move_player(
