@@ -72,13 +72,18 @@ fn setup(
     commands.spawn((
         Player,
         RigidBody::Dynamic,
-        Collider::ball(30.),
+        Collider::cuboid(10., 20.),
         AdditionalMassProperties::Mass(6.),
         Velocity {
             linvel: Vec2::new(0., 0.),
             angvel: 0.,
         },
-        Restitution::coefficient(3f32),
+        Restitution::coefficient(0.3f32),
+        Damping{
+            linear_damping: 0.5,
+            angular_damping: 1.0
+        },
+        LockedAxes::ROTATION_LOCKED,
         SpriteBundle {
             texture: asset_server.load("character.png"),
             // sprite: Sprite {
@@ -93,6 +98,7 @@ fn setup(
             },
 
             transform: Transform::from_xyz(0., 0., 0.).with_scale(Vec3::splat(3.0)),
+
             ..default()
         },
         Sleeping::disabled(),
@@ -105,7 +111,7 @@ fn setup(
     ));
     {
         
-        let image_handle: Handle<Image> = asset_server.load("sable.png");
+        let image_handle: Handle<Image> = asset_server.load("terrain.png");
         println!("{:?}",asset_server.get_load_state(image_handle.clone()));
         // let mut material = ColorMaterial::from(image.clone());
         let image = images.get(&image_handle).expect("failed to get image");
@@ -119,9 +125,10 @@ fn setup(
             Ccd::enabled(),
             SpriteBundle{
                 texture: image_handle,
+                transform: Transform::from_xyz(0f32, -50f32, 0f32).with_scale(Vec3::splat(30.0)),
                 ..Default::default()
-            }        
-            
+            },       
+           
         ));
     }
     
@@ -132,7 +139,7 @@ fn load_assets(
     mut game_assets: ResMut<GameAssets>, 
 ) {
     game_assets.images = HashMap::from([
-        ("Sable".to_string(), asset_server.load("sable.png") ),
+        ("terrain".to_string(), asset_server.load("terrain.png") ),
         ("Character".to_string(), asset_server.load("character.png")) 
     ]);
 }
