@@ -1,8 +1,8 @@
-use std::{future, collections::HashMap};
+use std::collections::HashMap;
 
-use bevy::{prelude::*, window::PrimaryWindow, core_pipeline::clear_color::ClearColorConfig, asset::LoadAssets};
+use bevy::{prelude::*, window::PrimaryWindow, core_pipeline::clear_color::ClearColorConfig, asset::LoadState};
 use bevy_rapier2d::prelude::*;
-use bevy_rapier_collider_gen::{multi_polyline_collider_translated};
+use bevy_rapier_collider_gen::multi_polyline_collider_translated;
 
 fn main() {
     App::new()
@@ -40,11 +40,16 @@ impl Plugin for HelloPlugin {
         app.add_state::<AppStates>()
             .insert_resource(FixedTime::new_from_secs(1.0 / 60.0)) // 1 60th of a second, for 60FPS
             .insert_resource(GameAssets::default())
-            .add_systems(Startup, setup)
-            .add_systems(FixedUpdate, move_player)
-            .add_systems(Update, rotate_player_according_to_mouse)
-            .add_systems(Update, camera_follow_player)
+            .add_systems(OnEnter(AppStates::Loading), load_assets)
+            .add_systems(OnExit(AppStates::Loading), setup)
+            .add_systems(FixedUpdate, move_player.run_if(in_state(AppStates::Playing)))
+            .add_systems(Update, (
+                rotate_player_according_to_mouse.run_if(in_state(AppStates::Playing) ),
+                camera_follow_player.run_if(in_state(AppStates::Playing)),
+                check_assets.run_if(in_state(AppStates::Loading)))
+            )
             .add_systems(Update, bevy::window::close_on_esc);
+        
     }
 }
 
@@ -67,13 +72,13 @@ fn setup(
     commands.spawn((
         Player,
         RigidBody::Dynamic,
-        // Collider::ball(50.),
+        Collider::ball(30.),
         AdditionalMassProperties::Mass(6.),
         Velocity {
             linvel: Vec2::new(0., 0.),
             angvel: 0.,
         },
-        Restitution::coefficient(0.7),
+        Restitution::coefficient(3f32),
         SpriteBundle {
             texture: asset_server.load("character.png"),
             // sprite: Sprite {
@@ -106,45 +111,44 @@ fn setup(
         let image = images.get(&image_handle).expect("failed to get image");
         let colliders = multi_polyline_collider_translated(&image); 
 
+        dbg!(&colliders);
+
         commands.spawn((
+            colliders[0].clone(),
             RigidBody::Fixed,
             Ccd::enabled(),
             SpriteBundle{
                 texture: image_handle,
                 ..Default::default()
-            }            
+            }        
+            
         ));
     }
     
 }
 
-fn loadAssets(
+fn load_assets(
     asset_server: Res<AssetServer>,
     mut game_assets: ResMut<GameAssets>, 
 ) {
-    let image_handle: Handle<Image> = asset_server.load("sable.png");
-    game_assets.images.insert("sable".to_string(), image_handle);
-
-    game_assets.images = HashMap::from(
-        vec![
-            "sable.png",
-            "character.png"
-        ].iter()
-        .map(|&s| (s.into(), asset_server.load(s)))
-        .collect::<Vec<_>>()
-    );
-        
-
+    game_assets.images = HashMap::from([
+        ("Sable".to_string(), asset_server.load("sable.png") ),
+        ("Character".to_string(), asset_server.load("character.png")) 
+    ]);
 }
 
 fn check_assets(
     asset_server: Res<AssetServer>,
     mut state: ResMut<NextState<AppStates>>,
+    game_assets: ResMut<GameAssets>
 ) {
-
-    if asset_server.get_load_state(image_handle.clone()) == LoadState::Loaded {
-        state.set(AppStates::Playing).unwrap();
+    for handle in game_assets.images.values() {
+        if asset_server.get_load_state(handle.clone()) != LoadState::Loaded {
+            return;
+        }
     }
+
+    state.set(AppStates::Playing);
 }
 
 fn move_player(
@@ -152,6 +156,9 @@ fn move_player(
     mut impulses: Query<&mut ExternalImpulse, With<Player>>,
     time_step: Res<FixedTime>,
 ) {
+
+    //impulses.single_mut().impulse = impulses.single_mut().impulse / 10f32;
+
     let movement = {
         let (mut x, mut y) = (0.0, 0.0);
         if keyboard.pressed(KeyCode::Right) {
@@ -168,12 +175,14 @@ fn move_player(
         }
         Vec2::new(x, y)
     };
-    const PLAYER_SPEED: f32 = 300.0;
+    const PLAYER_SPEED: f32 = 1000.0;
 
-    for mut impulse in impulses.iter_mut() {
-        impulse.impulse = movement * PLAYER_SPEED * time_step.period.as_secs_f32();
-    }
+    impulses.single_mut().impulse = movement * PLAYER_SPEED * time_step.period.as_secs_f32();
+
+
 }
+
+
 
 fn rotate_player_according_to_mouse(
     player_transform: Query<&Transform, With<Player>>,
