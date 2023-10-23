@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, ops::Neg, f32::consts::PI};
 
 use bevy::{
     asset::LoadState, core_pipeline::clear_color::ClearColorConfig, prelude::*,
@@ -25,6 +25,10 @@ struct GameAssets {
 
 #[derive(Component)]
 struct Player;
+
+#[derive(Component)]
+struct Spear;
+
 
 #[derive(Component)]
 struct Terrain;
@@ -54,6 +58,7 @@ impl Plugin for HelloPlugin {
             .add_systems(
                 Update,
                 (
+                    rotate_spear_according_to_mouse.run_if(in_state(AppStates::Playing)),
                     rotate_player_according_to_mouse.run_if(in_state(AppStates::Playing)),
                     camera_follow_player.run_if(in_state(AppStates::Playing)),
                     check_assets.run_if(in_state(AppStates::Loading)),
@@ -117,6 +122,7 @@ fn setup(
     )).with_children(
         | player | {
             player.spawn((
+                Spear,
                 SpriteBundle {
                     texture: asset_server.load("spear.png"),
                     sprite: Sprite {
@@ -124,11 +130,10 @@ fn setup(
                         flip_y: false,
                         ..Default::default()
                     },
-                    transform: Transform::from_xyz(0., 0., 0.).with_scale(Vec3::splat(3.0)),
+                    transform: Transform::from_xyz(0., 0., 0.).with_scale(Vec3::splat(0.08)),
                     ..default()
                 },
                 Collider::cuboid(10., 20.),
-                RigidBody::Dynamic,
                 Ccd::enabled(),
             ));
         }
@@ -139,10 +144,6 @@ fn setup(
         // let mut material = ColorMaterial::from(image.clone());
         let image = images.get(&image_handle).expect("failed to get image");
         let collider = single_heightfield_collider_translated(&image);
-
-        dbg!(&collider);
-
-        
 
         commands.spawn((
             Terrain,
@@ -156,7 +157,6 @@ fn setup(
             },
         ));
         let width = image.size().x;
-        dbg!(width);
         commands.spawn((
             Terrain,
             collider.clone(),
@@ -254,4 +254,30 @@ fn camera_follow_player(
     let mut camera_transform = camera_transform.single_mut();
     camera_transform.translation.x = player_transform.translation.x;
     camera_transform.translation.y = player_transform.translation.y;
+}
+
+
+fn rotate_spear_according_to_mouse(
+    mut spear_transform: Query<& mut Transform, With<Spear>>,
+    spear_global_transform: Query<&GlobalTransform, With<Spear>>,
+    windows: Query<&Window, With<PrimaryWindow>>,   
+) {
+    let Some(cursor_pos) = windows.single().cursor_position() else {
+        return;
+    };
+    let mut spear_transform = spear_transform.single_mut();
+    let sgt = spear_global_transform.single().compute_transform();
+
+    let local_cursor_pos = cursor_pos + sgt.translation.truncate();
+    let angle_vec = sgt.translation.truncate() - local_cursor_pos;
+    
+    dbg!(angle_vec.angle_between(local_cursor_pos));
+    // let quat_angle = (local_cursor_pos.y - spear_transform.translation.y).atan2(local_cursor_pos.x - spear_transform.translation.x);
+    // dbg!( quat_angle);
+    spear_transform.rotation = Quat::from_rotation_z(
+        // (cursor_pos.y - sgt.translation.y).atan2(cursor_pos.x - sgt.translation.x) *  2
+        angle_vec.angle_between(local_cursor_pos)
+    );
+
+    
 }
