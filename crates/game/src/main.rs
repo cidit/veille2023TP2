@@ -5,7 +5,7 @@ use bevy::{
     window::PrimaryWindow,
 };
 use bevy_rapier2d::prelude::*;
-use bevy_rapier_collider_gen::multi_polyline_collider_translated;
+use bevy_rapier_collider_gen::single_heightfield_collider_translated;
 
 fn main() {
     App::new()
@@ -25,6 +25,9 @@ struct GameAssets {
 
 #[derive(Component)]
 struct Player;
+
+#[derive(Component)]
+struct Terrain;
 
 #[derive(Component)]
 struct MainCamera;
@@ -94,18 +97,13 @@ fn setup(
         LockedAxes::ROTATION_LOCKED,
         SpriteBundle {
             texture: asset_server.load("character.png"),
-            // sprite: Sprite {
-            //     color: Color::rgb(0.1, 0.1, 1.0),
-            //     custom_size: Some(Vec2::new(20.0, 20.0)),
-            //     ..Default::default()
-            // },
             sprite: Sprite {
                 flip_x: true,
                 flip_y: false,
                 ..Default::default()
             },
 
-            transform: Transform::from_xyz(0., 0., 0.).with_scale(Vec3::splat(3.0)),
+            transform: Transform::from_xyz(0., -10., 0.).with_scale(Vec3::splat(3.0)),
 
             ..default()
         },
@@ -122,17 +120,33 @@ fn setup(
         println!("{:?}", asset_server.get_load_state(image_handle.clone()));
         // let mut material = ColorMaterial::from(image.clone());
         let image = images.get(&image_handle).expect("failed to get image");
-        let colliders = multi_polyline_collider_translated(&image);
+        let collider = single_heightfield_collider_translated(&image);
 
-        dbg!(&colliders);
+        dbg!(&collider);
+
+        
 
         commands.spawn((
-            colliders[0].clone(),
+            Terrain,
+            collider.clone(),
             RigidBody::Fixed,
             Ccd::enabled(),
             SpriteBundle {
-                texture: image_handle,
-                transform: Transform::from_xyz(0f32, -50f32, 0f32).with_scale(Vec3::splat(30.0)),
+                texture: image_handle.clone(),
+                transform: Transform::from_xyz(0f32, 0f32, 0f32).with_scale(Vec3::splat(5.0)),
+                ..Default::default()
+            },
+        ));
+        let width = image.size().x;
+        dbg!(width);
+        commands.spawn((
+            Terrain,
+            collider.clone(),
+            RigidBody::Fixed,
+            Ccd::enabled(),
+            SpriteBundle {
+                texture: image_handle.clone(),
+                transform: Transform::from_xyz(width * 5f32, 0f32, 0f32).with_scale(Vec3::splat(5.0)),
                 ..Default::default()
             },
         ));
