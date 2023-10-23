@@ -151,6 +151,8 @@ fn setup(
             },
         ));
     }
+
+    
 }
 
 fn load_assets(asset_server: Res<AssetServer>, mut game_assets: ResMut<GameAssets>) {
