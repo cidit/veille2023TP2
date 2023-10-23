@@ -21,3 +21,7 @@ lien 2: https://doc.rust-lang.org/std/option/enum.Option.html#variant.Some
 j'ai voulu faire un terrai qui agirais de base au lac mais on avais eu de la misere a créer un mesh a partir d'une image png. j'ai trouver une library qui pourrais le faire peut-etre :
 
 lien 1: https://github.com/shnewto/bevy_rapier_collider_gen/tree/main
+
+# 20 Octobre 2023
+
+Ajout d'un nouveau terrain qui marche ave les colider et le multi_polyline_collider_translated. J'ai aussi ajouter un colider au personnage et ajouter une resistance dans l'eau.
