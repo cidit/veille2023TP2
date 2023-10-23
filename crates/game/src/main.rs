@@ -113,8 +113,26 @@ fn setup(
         ExternalImpulse {
             impulse: Vec2::new(0., 0.),
             ..Default::default()
-        },
-    ));
+        },    
+    )).with_children(
+        | player | {
+            player.spawn((
+                SpriteBundle {
+                    texture: asset_server.load("spear.png"),
+                    sprite: Sprite {
+                        flip_x: true,
+                        flip_y: false,
+                        ..Default::default()
+                    },
+                    transform: Transform::from_xyz(0., 0., 0.).with_scale(Vec3::splat(3.0)),
+                    ..default()
+                },
+                Collider::cuboid(10., 20.),
+                RigidBody::Dynamic,
+                Ccd::enabled(),
+            ));
+        }
+    );
     {
         let image_handle: Handle<Image> = asset_server.load("terrain.png");
         println!("{:?}", asset_server.get_load_state(image_handle.clone()));
@@ -152,13 +170,15 @@ fn setup(
         ));
     }
 
-    
+
 }
 
 fn load_assets(asset_server: Res<AssetServer>, mut game_assets: ResMut<GameAssets>) {
     game_assets.images = HashMap::from([
         ("terrain".to_string(), asset_server.load("terrain.png")),
         ("Character".to_string(), asset_server.load("character.png")),
+        ("trash".to_string(), asset_server.load("trash.png")),
+        ("spear".to_string(), asset_server.load("spear.png")),
     ]);
 }
 
