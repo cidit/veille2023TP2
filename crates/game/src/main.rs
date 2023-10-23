@@ -1,6 +1,9 @@
 use std::collections::HashMap;
 
-use bevy::{prelude::*, window::PrimaryWindow, core_pipeline::clear_color::ClearColorConfig, asset::LoadState};
+use bevy::{
+    asset::LoadState, core_pipeline::clear_color::ClearColorConfig, prelude::*,
+    window::PrimaryWindow,
+};
 use bevy_rapier2d::prelude::*;
 use bevy_rapier_collider_gen::multi_polyline_collider_translated;
 
@@ -15,10 +18,9 @@ fn main() {
         .run();
 }
 
-
 #[derive(Resource, Default)]
 struct GameAssets {
-    images: HashMap<String, Handle<Image>>
+    images: HashMap<String, Handle<Image>>,
 }
 
 #[derive(Component)]
@@ -30,7 +32,7 @@ struct MainCamera;
 #[derive(States, Debug, Clone, PartialEq, Eq, Hash, Default)]
 pub enum AppStates {
     #[default]
-    Loading, 
+    Loading,
     Playing,
 }
 
@@ -42,29 +44,35 @@ impl Plugin for HelloPlugin {
             .insert_resource(GameAssets::default())
             .add_systems(OnEnter(AppStates::Loading), load_assets)
             .add_systems(OnExit(AppStates::Loading), setup)
-            .add_systems(FixedUpdate, move_player.run_if(in_state(AppStates::Playing)))
-            .add_systems(Update, (
-                rotate_player_according_to_mouse.run_if(in_state(AppStates::Playing) ),
-                camera_follow_player.run_if(in_state(AppStates::Playing)),
-                check_assets.run_if(in_state(AppStates::Loading)))
+            .add_systems(
+                FixedUpdate,
+                move_player.run_if(in_state(AppStates::Playing)),
+            )
+            .add_systems(
+                Update,
+                (
+                    rotate_player_according_to_mouse.run_if(in_state(AppStates::Playing)),
+                    camera_follow_player.run_if(in_state(AppStates::Playing)),
+                    check_assets.run_if(in_state(AppStates::Loading)),
+                ),
             )
             .add_systems(Update, bevy::window::close_on_esc);
-        
     }
 }
 
 fn setup(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
-   // mut materials: Res<Assets<ColorMaterial>>,
-    images: Res<Assets<Image>>
-    ) {
-
+    // mut materials: Res<Assets<ColorMaterial>>,
+    images: Res<Assets<Image>>,
+) {
     commands.spawn((
         MainCamera,
         Camera2dBundle {
             camera_2d: Camera2d {
-                clear_color: ClearColorConfig::Custom(Color::hex("5542FD").expect("failed to parse color")),
+                clear_color: ClearColorConfig::Custom(
+                    Color::hex("5542FD").expect("failed to parse color"),
+                ),
             },
             ..Default::default()
         },
@@ -79,9 +87,9 @@ fn setup(
             angvel: 0.,
         },
         Restitution::coefficient(0.3f32),
-        Damping{
+        Damping {
             linear_damping: 0.5,
-            angular_damping: 1.0
+            angular_damping: 1.0,
         },
         LockedAxes::ROTATION_LOCKED,
         SpriteBundle {
@@ -110,12 +118,11 @@ fn setup(
         },
     ));
     {
-        
         let image_handle: Handle<Image> = asset_server.load("terrain.png");
-        println!("{:?}",asset_server.get_load_state(image_handle.clone()));
+        println!("{:?}", asset_server.get_load_state(image_handle.clone()));
         // let mut material = ColorMaterial::from(image.clone());
         let image = images.get(&image_handle).expect("failed to get image");
-        let colliders = multi_polyline_collider_translated(&image); 
+        let colliders = multi_polyline_collider_translated(&image);
 
         dbg!(&colliders);
 
@@ -123,31 +130,26 @@ fn setup(
             colliders[0].clone(),
             RigidBody::Fixed,
             Ccd::enabled(),
-            SpriteBundle{
+            SpriteBundle {
                 texture: image_handle,
                 transform: Transform::from_xyz(0f32, -50f32, 0f32).with_scale(Vec3::splat(30.0)),
                 ..Default::default()
-            },       
-           
+            },
         ));
     }
-    
 }
 
-fn load_assets(
-    asset_server: Res<AssetServer>,
-    mut game_assets: ResMut<GameAssets>, 
-) {
+fn load_assets(asset_server: Res<AssetServer>, mut game_assets: ResMut<GameAssets>) {
     game_assets.images = HashMap::from([
-        ("terrain".to_string(), asset_server.load("terrain.png") ),
-        ("Character".to_string(), asset_server.load("character.png")) 
+        ("terrain".to_string(), asset_server.load("terrain.png")),
+        ("Character".to_string(), asset_server.load("character.png")),
     ]);
 }
 
 fn check_assets(
     asset_server: Res<AssetServer>,
     mut state: ResMut<NextState<AppStates>>,
-    game_assets: ResMut<GameAssets>
+    game_assets: ResMut<GameAssets>,
 ) {
     for handle in game_assets.images.values() {
         if asset_server.get_load_state(handle.clone()) != LoadState::Loaded {
@@ -163,7 +165,6 @@ fn move_player(
     mut impulses: Query<&mut ExternalImpulse, With<Player>>,
     time_step: Res<FixedTime>,
 ) {
-
     //impulses.single_mut().impulse = impulses.single_mut().impulse / 10f32;
 
     let movement = {
@@ -185,11 +186,7 @@ fn move_player(
     const PLAYER_SPEED: f32 = 1000.0;
 
     impulses.single_mut().impulse = movement * PLAYER_SPEED * time_step.period.as_secs_f32();
-
-
 }
-
-
 
 fn rotate_player_according_to_mouse(
     player_transform: Query<&Transform, With<Player>>,
@@ -222,4 +219,3 @@ fn camera_follow_player(
     camera_transform.translation.x = player_transform.translation.x;
     camera_transform.translation.y = player_transform.translation.y;
 }
-
