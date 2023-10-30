@@ -25,3 +25,13 @@ lien 1: https://github.com/shnewto/bevy_rapier_collider_gen/tree/main
 # 20 Octobre 2023
 
 Ajout d'un nouveau terrain qui marche ave les colider et le multi_polyline_collider_translated. J'ai aussi ajouter un colider au personnage et ajouter une resistance dans l'eau.
+
+# 23 Octobre 2023
+
+Fix probleme de terrain
+
+# 27 Octobre 2023
+
+Ajout d'une "spear" dont le but etait de suivre la direction de la souris
+
+# 30 Octobre 2023
