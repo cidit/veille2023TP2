@@ -1,4 +1,4 @@
-use std::{collections::HashMap, ops::Neg, f32::consts::PI};
+use std::{collections::HashMap, ops::Neg, f32::consts::PI, os::windows};
 
 use bevy::{
     asset::LoadState, core_pipeline::clear_color::ClearColorConfig, prelude::*,
@@ -259,25 +259,39 @@ fn camera_follow_player(
 
 fn rotate_spear_according_to_mouse(
     mut spear_transform: Query<& mut Transform, With<Spear>>,
-    spear_global_transform: Query<&GlobalTransform, With<Spear>>,
     windows: Query<&Window, With<PrimaryWindow>>,   
 ) {
-    let Some(cursor_pos) = windows.single().cursor_position() else {
+    let window = windows.single();
+
+    let Some(cursor_pos) = &window.cursor_position() else {
         return;
     };
-    let mut spear_transform = spear_transform.single_mut();
-    let sgt = spear_global_transform.single().compute_transform();
 
-    let local_cursor_pos = cursor_pos + sgt.translation.truncate();
-    let angle_vec = sgt.translation.truncate() - local_cursor_pos;
-    
-    dbg!(angle_vec.angle_between(local_cursor_pos));
-    // let quat_angle = (local_cursor_pos.y - spear_transform.translation.y).atan2(local_cursor_pos.x - spear_transform.translation.x);
-    // dbg!( quat_angle);
-    spear_transform.rotation = Quat::from_rotation_z(
-        // (cursor_pos.y - sgt.translation.y).atan2(cursor_pos.x - sgt.translation.x) *  2
-        angle_vec.angle_between(local_cursor_pos)
-    );
+    let vec_middle_to_cursor = translate_coords_relative_to_middle(window, &cursor_pos);
 
-    
+    let agle_between = Vec2::Y.angle_between(vec_middle_to_cursor);
+    let mut spear = spear_transform.single_mut();
+    spear.rotation = Quat::from_rotation_z(agle_between);
 }
+
+fn get_screen_middle_position_translated(
+    windows: &Window
+) -> Vec2 {
+    Vec2::new(
+        windows.width() as f32 / 2.0,
+        windows.height() as f32 / 2.0,
+    )
+}
+
+fn translate_coords_relative_to_middle(
+    windows: &Window,
+    coords: &Vec2
+) -> Vec2 {
+    let screen_mid_pos = get_screen_middle_position_translated(windows);
+    Vec2::new(
+        coords.x - screen_mid_pos.x,
+        (coords.y - screen_mid_pos.y).neg(),
+    )
+}
+
+
