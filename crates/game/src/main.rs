@@ -1,4 +1,4 @@
-use std::{collections::HashMap, ops::Neg, f32::consts::PI};
+use std::{collections::HashMap, ops::Neg, f32::consts::PI, rc::Rc};
 
 use bevy::{
     asset::LoadState, core_pipeline::clear_color::ClearColorConfig, prelude::*,
@@ -280,4 +280,22 @@ fn rotate_spear_according_to_mouse(
     );
 
     
+}
+
+
+fn animate_player_to_mouse_gizmo(
+    mut gizmos: Gizmos,
+    time_step: Res<FixedTime>,
+    q_p_transfrom: Query<&Transform, With<Player>>,
+    q_windows: Query<&Window, With<PrimaryWindow>>,
+    q_cameras: Query<(&Camera, &GlobalTransform), With<MainCamera>>,
+) {
+    let (cam, cam_transform) = q_cameras.single();
+    let Some(world_pos) = q_windows.single()
+        .cursor_position()
+        .and_then(|c| cam.viewport_to_world(cam_transform, c)) 
+        .map(|r| r.origin.truncate())
+    else {
+        return;
+    };
 }
