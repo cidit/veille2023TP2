@@ -35,3 +35,5 @@ Fix probleme de terrain
 Ajout d'une "spear" dont le but etait de suivre la direction de la souris
 
 # 30 Octobre 2023
+
+Fix probleme de spear

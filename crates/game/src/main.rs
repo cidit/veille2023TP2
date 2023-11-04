@@ -29,6 +29,12 @@ struct Player;
 #[derive(Component)]
 struct Spear;
 
+#[derive(States, Debug, Clone, PartialEq, Eq, Hash, Default)]
+pub enum SpearIsMoving {
+    #[default]
+    Moving,
+    NotMoving,
+}
 
 #[derive(Component)]
 struct Terrain;
@@ -62,6 +68,7 @@ impl Plugin for HelloPlugin {
                     rotate_player_according_to_mouse.run_if(in_state(AppStates::Playing)),
                     camera_follow_player.run_if(in_state(AppStates::Playing)),
                     check_assets.run_if(in_state(AppStates::Loading)),
+                    move_spear_on_click.run_if(in_state(AppStates::Playing) & in_state(SpearIsMoving::NotMoving)),
                 ),
             )
             .add_systems(Update, bevy::window::close_on_esc);
@@ -74,6 +81,7 @@ fn setup(
     // mut materials: Res<Assets<ColorMaterial>>,
     images: Res<Assets<Image>>,
 ) {
+
     commands.spawn((
         MainCamera,
         Camera2dBundle {
@@ -294,4 +302,16 @@ fn translate_coords_relative_to_middle(
     )
 }
 
+
+fn move_spear_on_click(
+    mut spear_transform: Query<& mut Transform, With<Spear>>,
+    buttons: Res<Input<MouseButton>>
+) {
+    if buttons.just_pressed(MouseButton::Left) {
+        let mut spear = spear_transform.single_mut();
+        spear.translation.x += 10.0;
+
+        
+    }
+}
 
