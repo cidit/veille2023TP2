@@ -42,6 +42,58 @@ struct Terrain;
 #[derive(Component)]
 struct MainCamera;
 
+#[derive(Component, Default)]
+struct Trash;
+
+#[derive(Bundle, Default)]
+struct TrashBundle {
+    marker: Trash,
+    rigid_body: RigidBody,
+    collider: Collider,
+    mass: AdditionalMassProperties,
+    velocity: Velocity,
+    restitution: Restitution,
+    damping: Damping,
+    gravity_scale: GravityScale,
+    ccd: Ccd,
+    external_impulse: ExternalImpulse,
+    sprite: SpriteBundle,
+}
+
+impl TrashBundle {
+    fn new(asset_server: &AssetServer) -> Self {
+        Self {
+            rigid_body: RigidBody::Dynamic,
+            // TODO: the scale of the colider is influenced by the sprite's scaling because its the same entity. split with children to ajust
+            collider: Collider::ball(150.),
+            mass: AdditionalMassProperties::Mass(5.),
+            damping: Damping {
+                linear_damping: 0.5,
+                angular_damping: 0.9,
+            },
+            sprite: SpriteBundle {
+                texture: asset_server.load("trash.png"),
+                transform: Transform::from_scale(Vec3::splat(0.1)),
+                ..default()
+            },
+            gravity_scale: GravityScale(0.1),
+            ccd: Ccd::enabled(),
+            restitution: Restitution::coefficient(0.3),
+            ..default()
+        }
+    }
+
+    fn with_coords(coords: (f32, f32), asset_server: &AssetServer) -> Self {
+        let mut s = Self::new(asset_server);
+        s.sprite.transform.translation = Vec3 {
+            x: coords.0,
+            y: coords.1,
+            z: -1.,
+        };
+        return s;
+    }
+}
+
 #[derive(States, Debug, Clone, PartialEq, Eq, Hash, Default)]
 pub enum AppStates {
     #[default]
@@ -68,7 +120,7 @@ impl Plugin for HelloPlugin {
                     rotate_player_according_to_mouse.run_if(in_state(AppStates::Playing)),
                     camera_follow_player.run_if(in_state(AppStates::Playing)),
                     check_assets.run_if(in_state(AppStates::Loading)),
-                    move_spear_on_click.run_if(in_state(AppStates::Playing) & in_state(SpearIsMoving::NotMoving)),
+                    move_spear_on_click.run_if(in_state(AppStates::Playing)),
                 ),
             )
             .add_systems(Update, bevy::window::close_on_esc);
@@ -81,7 +133,6 @@ fn setup(
     // mut materials: Res<Assets<ColorMaterial>>,
     images: Res<Assets<Image>>,
 ) {
-
     commands.spawn((
         MainCamera,
         Camera2dBundle {
@@ -93,59 +144,66 @@ fn setup(
             ..Default::default()
         },
     ));
-    commands.spawn((
-        Player,
-        RigidBody::Dynamic,
-        Collider::cuboid(10., 20.),
-        AdditionalMassProperties::Mass(6.),
-        Velocity {
-            linvel: Vec2::new(0., 0.),
-            angvel: 0.,
-        },
-        Restitution::coefficient(0.3f32),
-        Damping {
-            linear_damping: 0.5,
-            angular_damping: 1.0,
-        },
-        LockedAxes::ROTATION_LOCKED,
-        SpriteBundle {
-            texture: asset_server.load("character.png"),
-            sprite: Sprite {
-                flip_x: true,
-                flip_y: false,
+    commands
+        .spawn((
+            Player,
+            RigidBody::Dynamic,
+            Collider::cuboid(10., 20.),
+            AdditionalMassProperties::Mass(6.),
+            // Velocity {
+            //     linvel: Vec2::new(0., 0.),
+            //     angvel: 0.,
+            // },
+            Restitution::coefficient(0.3f32),
+            Damping {
+                linear_damping: 0.5,
+                angular_damping: 1.0,
+            },
+            LockedAxes::ROTATION_LOCKED,
+            SpriteBundle {
+                texture: asset_server.load("character.png"),
+                sprite: Sprite {
+                    flip_x: true,
+                    flip_y: false,
+                    ..Default::default()
+                },
+                transform: Transform::from_xyz(0., -10., 0.).with_scale(Vec3::splat(3.)),
+                ..default()
+            },
+            Sleeping::disabled(),
+            GravityScale(0.1),
+            Ccd::enabled(),
+            ExternalImpulse {
+                impulse: Vec2::new(0., 0.),
                 ..Default::default()
             },
-
-            transform: Transform::from_xyz(0., -10., 0.).with_scale(Vec3::splat(3.0)),
-
-            ..default()
-        },
-        Sleeping::disabled(),
-        GravityScale(0.1),
-        Ccd::enabled(),
-        ExternalImpulse {
-            impulse: Vec2::new(0., 0.),
-            ..Default::default()
-        },    
-    )).with_children(
-        | player | {
-            player.spawn((
-                Spear,
-                SpriteBundle {
-                    texture: asset_server.load("spear.png"),
-                    sprite: Sprite {
-                        flip_x: true,
-                        flip_y: false,
-                        ..Default::default()
+        ))
+        .with_children(|player| {
+            player
+                .spawn((
+                    Spear,
+                    SpriteBundle {
+                        texture: asset_server.load("spear.png"),
+                        sprite: Sprite {
+                            flip_x: true,
+                            flip_y: false,
+                            ..Default::default()
+                        },
+                        transform: Transform::from_xyz(0., 0., 0.).with_scale(Vec3::splat(0.08)),
+                        ..default()
                     },
-                    transform: Transform::from_xyz(0., 0., 0.).with_scale(Vec3::splat(0.08)),
-                    ..default()
-                },
-                Collider::cuboid(10., 20.),
-                Ccd::enabled(),
-            ));
-        }
-    );
+                    Sensor,
+                    Collider::cuboid(1000., 500.),
+                ))
+                .with_children(|spear| {
+                    // spear.spawn((
+                    //     Sensor,
+                    //     Collider::cuboid(2500., 1000.),
+                        // Collider::ball(10.),
+                        // SpatialBundle::from_transform(Transform::from_xyz(0., 5000., 0.))
+                    // ));
+                });
+        });
     {
         let image_handle: Handle<Image> = asset_server.load("terrain.png");
         println!("{:?}", asset_server.get_load_state(image_handle.clone()));
@@ -172,13 +230,19 @@ fn setup(
             Ccd::enabled(),
             SpriteBundle {
                 texture: image_handle.clone(),
-                transform: Transform::from_xyz(width * 5f32, 0f32, 0f32).with_scale(Vec3::splat(5.0)),
+                transform: Transform::from_xyz(width * 5f32, 0f32, 0f32)
+                    .with_scale(Vec3::splat(5.0)),
                 ..Default::default()
             },
         ));
     }
 
-
+    // spawning trash cans
+    commands.spawn_batch(
+        (0..10)
+            .map(|n| TrashBundle::with_coords((0. + (n as f32 * 300.), 300.), &asset_server))
+            .collect::<Vec<_>>(),
+    );
 }
 
 fn load_assets(asset_server: Res<AssetServer>, mut game_assets: ResMut<GameAssets>) {
@@ -189,6 +253,18 @@ fn load_assets(asset_server: Res<AssetServer>, mut game_assets: ResMut<GameAsset
         ("spear".to_string(), asset_server.load("spear.png")),
     ]);
 }
+
+// fn kill_when_contact_spear(
+//     commands: Commands,
+//     q_trashcans: Query<(Entity, &Collider), With<Trash>>,
+//     q_spear: Query<&Collider, With<Spear>>,
+//     events: EventReader<CollisionEvent>,
+// ) {
+//     let spear_colider = q_spear.single();
+//     for e in events.iter() {
+        
+//     }
+// }
 
 fn check_assets(
     asset_server: Res<AssetServer>,
@@ -264,10 +340,9 @@ fn camera_follow_player(
     camera_transform.translation.y = player_transform.translation.y;
 }
 
-
 fn rotate_spear_according_to_mouse(
-    mut spear_transform: Query<& mut Transform, With<Spear>>,
-    windows: Query<&Window, With<PrimaryWindow>>,   
+    mut spear_transform: Query<&mut Transform, With<Spear>>,
+    windows: Query<&Window, With<PrimaryWindow>>,
 ) {
     let window = windows.single();
 
@@ -282,19 +357,11 @@ fn rotate_spear_according_to_mouse(
     spear.rotation = Quat::from_rotation_z(agle_between);
 }
 
-fn get_screen_middle_position_translated(
-    windows: &Window
-) -> Vec2 {
-    Vec2::new(
-        windows.width() as f32 / 2.0,
-        windows.height() as f32 / 2.0,
-    )
+fn get_screen_middle_position_translated(windows: &Window) -> Vec2 {
+    Vec2::new(windows.width() as f32 / 2.0, windows.height() as f32 / 2.0)
 }
 
-fn translate_coords_relative_to_middle(
-    windows: &Window,
-    coords: &Vec2
-) -> Vec2 {
+fn translate_coords_relative_to_middle(windows: &Window, coords: &Vec2) -> Vec2 {
     let screen_mid_pos = get_screen_middle_position_translated(windows);
     Vec2::new(
         coords.x - screen_mid_pos.x,
@@ -302,16 +369,12 @@ fn translate_coords_relative_to_middle(
     )
 }
 
-
 fn move_spear_on_click(
-    mut spear_transform: Query<& mut Transform, With<Spear>>,
-    buttons: Res<Input<MouseButton>>
+    mut spear_transform: Query<&mut Transform, With<Spear>>,
+    buttons: Res<Input<MouseButton>>,
 ) {
     if buttons.just_pressed(MouseButton::Left) {
         let mut spear = spear_transform.single_mut();
         spear.translation.x += 10.0;
-
-        
     }
 }
-
